@@ -31,7 +31,7 @@ app.get('/api/notes', (request, response) => {
     })
 })
 
-app.get('/api/notes/:id', (request, response) => {
+app.get('/api/notes/:id', (request, response, next) => {
     Note.findById(request.params.id)
         .then(note => {
             if (note) {
@@ -40,24 +40,14 @@ app.get('/api/notes/:id', (request, response) => {
                 response.status(404).end()
             }
         })
-        .catch(err => {
-            console.log(err)
-            response.status(400).send({ error: 'malformatted id'})
-        })
+        .catch(err => next(err))
 })
 
 /****************************
  *          POSTS           *
  ***************************/
-app.post('/api/notes', (request, response) => {
+app.post('/api/notes', (request, response, next) => {
     const body = request.body
-
-    // Send 400 bad request
-    if(body.content === undefined) {
-        return response.status(400).json({
-            error: 'content missing'
-        })
-    }
 
     const note = new Note({
         content: body.content,
@@ -65,34 +55,48 @@ app.post('/api/notes', (request, response) => {
         date: new Date(),
     })
 
-    note.save().then(savedNote => {
-        response.json(savedNote)
-    })
+    note.save()
+        // Receive savedNote object from Mongoose, format it
+        .then(savedNote => savedNote.toJSON())
+        .then(saveAndFormattedNote => {
+            response.json(saveAndFormattedNote)
+        })
+        .catch(err => next(err))
+})
+
+/****************************
+ *            PUT           *
+ ***************************/
+app.put('/api/notes/:id', (request, response, next) => {
+    const body = request.body
+
+    const note = {
+        content: body.content,
+        important: body.important,
+    }
+
+    // The 'new: true' causes the event handler to be called with the new modified document instead of the original
+    Note.findByIdAndUpdate(request.params.id, note, {new: true})
+        .then(updatedNote => {
+            response.json(updatedNote)
+        })
+        .catch(err => next(err))
 })
 
 /****************************
  *          DELETE          *
  ***************************/
-app.delete('/api/notes/:id', (request, response) => {
-    const id = Number(request.params.id);
-    notes = notes.filter(note => note.id !== id);
-
-    response.status(204).end();
+app.delete('/api/notes/:id', (request, response, next) => {
+    Note.findByIdAndRemove(request.prams.id)
+        .then(result => {
+            response.status(204).end();
+        })
+        .catch(err => next(err))
 })
 
 /****************************
  *          HELPERS         *
  ***************************/
-const generateId = () => {
-    // Find out largest id
-    // the '...' transforms the array 'notes' into an individual number
-    const maxId = notes.length > 0
-        ? Math.max(...notes.map(n => n.id))
-        : 0
-    console.log('test')
-    return maxId + 1;
-}
-
 const unknownEndpoint = (request, response) => {
     response.status(404).send({ error: 'unknown endpoint' })
 }
@@ -106,3 +110,18 @@ const PORT = process.env.PORT
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`)
 })
+
+// Error handler middleware
+const errorHandler = (error, request, response, next) => {
+    console.error(error.message)
+
+    if (error.name === 'CastError') {
+        return response.status(400).send({ error: 'malformed id'})
+    } else if (error.name === 'ValidationError') {
+        return response.status(400).json({ error: error.message })
+    }
+
+    next(error)
+}
+
+app.use(errorHandler)
