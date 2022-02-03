@@ -9,22 +9,19 @@ notesRouter.get('/', async (request, response) => {
     response.json(notes)
 })
 
-notesRouter.get('/:id', (request, response, next) => {
-    Note.findById(request.params.id)
-        .then(note => {
-            if (note) {
-                response.json(note)
-            } else {
-                response.status(404).end()
-            }
-        })
-        .catch(error => next(error))
+notesRouter.get('/:id', async (request, response, next) => {
+    const note = await Note.findById(request.params.id)
+    if (note) {
+        response.json(note)
+    } else {
+        response.status(404).end()
+    }
 })
 
 /****************************
  *          POSTS           *
  ***************************/
-notesRouter.post('/', (request, response, next) => {
+notesRouter.post('/', async (request, response, next) => {
     const body = request.body
 
     const note = new Note({
@@ -33,22 +30,16 @@ notesRouter.post('/', (request, response, next) => {
         date: new Date()
     })
 
-    note.save()
-        .then(savedNote => {
-            response.json(savedNote.toJSON())
-        })
-        .catch(error => next(error))
+    const savedNote = await note.save()
+    response.json(savedNote.toJSON())
 })
 
 /****************************
  *          DELETE          *
  ***************************/
-notesRouter.delete('/:id', (request, response, next) => {
-    Note.findByIdAndRemove(request.params.id)
-        .then(() => {
-            response.status(204).end()
-        })
-        .catch(error => next(error))
+notesRouter.delete('/:id', async (request, response, next) => {
+    await Note.findByIdAndRemove(request.params.id)
+    response.status(204).end()
 })
 
 /****************************
