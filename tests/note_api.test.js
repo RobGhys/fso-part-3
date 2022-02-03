@@ -9,12 +9,16 @@ const Note = require('../models/note')
 
 beforeEach(async () => {
     await Note.deleteMany({})
+    console.log('cleared')
 
-    let noteObject = new Note(helper.initialNotes[0])
-    await noteObject.save()
+    const noteObjects = helper.initialNotes.map(
+        note => new Note(note)
+    )
+    const promiseArray = noteObjects.map(note => note.save())
+    // need to use a Promise.all, otherwise the beforeEach doesn't wait for the save() to finish
+    await Promise.all(promiseArray)
 
-    noteObject = new Note(helper.initialNotes[1])
-    await noteObject.save()
+    console.log('done with before each')
 })
 
 afterAll(() => {
