@@ -35,7 +35,7 @@ app.get('/api/notes/:id', (request, response, next) => {
     Note.findById(request.params.id)
         .then(note => {
             if (note) {
-                response.json(note);
+                response.json(note)
             } else {
                 response.status(404).end()
             }
@@ -76,7 +76,7 @@ app.put('/api/notes/:id', (request, response, next) => {
     }
 
     // The 'new: true' causes the event handler to be called with the new modified document instead of the original
-    Note.findByIdAndUpdate(request.params.id, note, {new: true})
+    Note.findByIdAndUpdate(request.params.id, note, { new: true })
         .then(updatedNote => {
             response.json(updatedNote)
         })
@@ -89,7 +89,7 @@ app.put('/api/notes/:id', (request, response, next) => {
 app.delete('/api/notes/:id', (request, response, next) => {
     Note.findByIdAndRemove(request.prams.id)
         .then(result => {
-            response.status(204).end();
+            response.status(204).end()
         })
         .catch(err => next(err))
 })
@@ -116,7 +116,7 @@ const errorHandler = (error, request, response, next) => {
     console.error(error.message)
 
     if (error.name === 'CastError') {
-        return response.status(400).send({ error: 'malformed id'})
+        return response.status(400).send({ error: 'malformed id' })
     } else if (error.name === 'ValidationError') {
         return response.status(400).json({ error: error.message })
     }
